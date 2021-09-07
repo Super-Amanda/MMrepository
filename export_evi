@@ -1,0 +1,21 @@
+var u = require('users/siatsiatns/eucalypt:utilities');
+
+// Filter Data Collection
+var wrs_path = 125;
+var wrs_row = 45;
+var start_date = ee.Date.fromYMD(2014, 1, 21);
+var end_date = start_date.advance(1, 'day');
+
+var col = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR')
+                .filterDate(start_date, end_date)
+                .filter(ee.Filter.eq('WRS_PATH', wrs_path))
+                .filter(ee.Filter.eq('WRS_ROW', wrs_row))
+                .map(u.CloudMaskLandsat)     // remove clouded pixels
+                .select(['B2', 'B4', 'B5', 'B6'], ['B', 'R', 'NIR', 'SWIR']);  // Bands: RGB and NIR
+var img = col.first();
+
+var evi = ee.Image(u.CalcEVI(img))
+            .set('system:index', img.get('system:index'))
+            .clip(img.geometry());
+
+u.ExportCol(evi, 'EVI', 30);
